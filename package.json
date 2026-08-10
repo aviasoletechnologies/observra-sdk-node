@@ -1,0 +1,68 @@
+{
+  "name": "observra",
+  "version": "0.1.0",
+  "description": "Observra SDK - route your LLM calls through the Observra gateway for tokens, latency, cost and error observability",
+  "license": "MIT",
+  "author": "Aviasole Technologies",
+  "homepage": "https://observra.in",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aviasoletechnologies/observra-sdk-node"
+  },
+  "keywords": [
+    "observra",
+    "llm",
+    "observability",
+    "ai-gateway",
+    "openai",
+    "anthropic",
+    "gemini",
+    "groq",
+    "opentelemetry",
+    "tracing",
+    "guardrails"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@google/adk": "^1.5.0",
+    "@google/genai": "^2.15.0",
+    "@langchain/core": "^1.2.4",
+    "@langchain/openai": "^1.5.5",
+    "@mistralai/mistralai": "^2.5.0",
+    "@types/node": "^20.14.0",
+    "groq-sdk": "^1.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "dependencies": {
+    "@opentelemetry/context-async-hooks": "^2.10.0",
+    "@opentelemetry/core": "^2.10.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0"
+  }
+}
