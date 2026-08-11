@@ -16,7 +16,27 @@ export interface ConfigureOptions {
   insecure?: boolean;
   /** "warn" (log only, default) | "redact" (mask before send/return) | "block" (throw GuardrailViolation). */
   guardrailMode?: GuardrailMode;
+  /**
+   * Ask the gateway to enforce its prompt-injection firewall more strictly
+   * than this application's dashboard setting for calls from this process.
+   *
+   * Strictness only. The gateway resolves the real policy from the gateway
+   * key and ignores anything here that would weaken it - otherwise whoever
+   * holds the key could turn the firewall off by sending a header, which
+   * defeats the point of having one. Leave it unset to use the configured
+   * policy, which is the normal case.
+   *
+   * Deliberately narrower than the config the gateway holds: a scanned-roles
+   * list or a score threshold sent from here could only ever *reduce* what is
+   * checked, so there is nothing for the gateway to honour and no reason to
+   * send them.
+   */
+  firewallMode?: FirewallMode;
 }
+
+/** Ordered least to most strict; the gateway takes whichever of its own
+ * policy and this is stricter. */
+export type FirewallMode = "log" | "flag" | "block";
 
 export interface ObservraConfig {
   gatewayUrl: string;
@@ -24,6 +44,7 @@ export interface ObservraConfig {
   serviceName?: string;
   tracer: Tracer;
   guardrailMode: GuardrailMode;
+  firewallMode?: FirewallMode;
 }
 
 let activeConfig: ObservraConfig | null = null;
@@ -56,6 +77,7 @@ export function configure(options: ConfigureOptions = {}): ObservraConfig {
     serviceName: options.serviceName,
     tracer: createTracer({ gatewayUrl, gatewayKey, serviceName: options.serviceName }),
     guardrailMode: options.guardrailMode ?? "warn",
+    firewallMode: options.firewallMode,
   };
   return activeConfig;
 }

@@ -210,6 +210,13 @@ function finalizeCall(route: RoutePlan, input: RequestInfo | URL, init?: Request
     if (traceparent) finalHeaders.set("traceparent", traceparent);
   }
 
+  // Same firewall strictness request the wrapper classes send (base.ts) - an
+  // instrument() user and a wrapper-class user must reach the gateway with
+  // identical headers, or the same configure() means two different things.
+  if (route.gatewayBound && route.config.firewallMode) {
+    finalHeaders.set("X-Observra-Firewall-Mode", route.config.firewallMode);
+  }
+
   if (!rewritten && !finalHeaders.has("traceparent")) return null; // nothing changed
 
   // A rerouted Request object can't be reused as `input` (its URL is

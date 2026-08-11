@@ -344,6 +344,7 @@ export class GatewayTransport {
     traceparent: string | undefined,
     redactedLabels: string[] = [],
   ): Promise<Response> {
+    const { firewallMode } = requireConfig();
     return fetch(this.baseUrl + path, {
       method: "POST",
       headers: {
@@ -352,6 +353,9 @@ export class GatewayTransport {
         "X-Provider-Key": this.providerKey,
         ...(traceparent ? { traceparent } : {}),
         ...(redactedLabels.length > 0 ? { "X-Observra-Guardrail-Applied": redactedLabels.join(",") } : {}),
+        // Strictness request only - the gateway ignores it unless it is
+        // stricter than the application's own policy. See ConfigureOptions.
+        ...(firewallMode ? { "X-Observra-Firewall-Mode": firewallMode } : {}),
       },
       body: JSON.stringify(body),
     });
