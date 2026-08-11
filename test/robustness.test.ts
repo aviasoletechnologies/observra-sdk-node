@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeAll } from "vitest";
+import { itLive } from "./live.js";
 import { configure, instrument, Groq, GatewayError } from "../src/index.js";
 import { rewriteToGateway } from "../src/instrumentation/routing.js";
 import { checkPayload } from "../src/guardrails/check.js";
@@ -135,7 +136,7 @@ describe("robustness: fail-open guarantees (plan.md requirement #1)", () => {
     expect(() => checkPayload("hello", "warn", exploding)).toThrow(/regex engine exploded/);
   });
 
-  it("a failing guardrail POLICY fetch never blocks a real call (live fail-open)", async () => {
+  itLive("a failing guardrail POLICY fetch never blocks a real call (live fail-open)", async () => {
     // resolveGuardrailPatterns() targets /__observability/guardrail-policy,
     // which does not exist on the gateway - it 404s on every single call.
     // If that failure were not contained, no request would ever succeed.
@@ -149,7 +150,7 @@ describe("robustness: fail-open guarantees (plan.md requirement #1)", () => {
     expect(response.choices[0].message.content).toBeTruthy();
   });
 
-  it("real calls still succeed even though the span exporter has no endpoint to POST to", async () => {
+  itLive("real calls still succeed even though the span exporter has no endpoint to POST to", async () => {
     // GatewayExporter targets /__observability/spans, which does not exist
     // on the gateway - every export 404s. That must never surface.
     const client = new Groq({ apiKey: env.GROQ_API_KEY });
@@ -161,7 +162,7 @@ describe("robustness: fail-open guarantees (plan.md requirement #1)", () => {
     expect(response.choices[0].message.content).toBeTruthy();
   });
 
-  it("an invalid gateway key produces a clean GatewayError, not a crash", async () => {
+  itLive("an invalid gateway key produces a clean GatewayError, not a crash", async () => {
     configure({ gatewayUrl: GATEWAY_URL, gatewayKey: "obs_definitely_invalid", insecure: true });
     const client = new Groq({ apiKey: env.GROQ_API_KEY });
 
@@ -191,7 +192,7 @@ describe("streaming (plan.md Phase 1: async iterator over SSE chunks)", () => {
     configure({ gatewayUrl: GATEWAY_URL, gatewayKey: GATEWAY_KEY, insecure: true });
   });
 
-  it("streams real SSE chunks from a live provider through the gateway", async () => {
+  itLive("streams real SSE chunks from a live provider through the gateway", async () => {
     const client = new Groq({ apiKey: env.GROQ_API_KEY });
 
     const stream = await client.chat.completions.create({
@@ -229,16 +230,20 @@ describe("streaming (plan.md Phase 1: async iterator over SSE chunks)", () => {
     ].join("");
 
     const bytes = new TextEncoder().encode(body);
-    const trickle = new ReadableStream<Uint8Array>({
-      start(controller) {
-        for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
-        controller.close();
-      },
-    });
+    // A fresh stream per call, not one shared instance: getRules() fires a
+    // background guardrail-policy fetch on a cold cache, and that call would
+    // lock the single stream before postStream ever gets a reader on it.
+    const trickle = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+          controller.close();
+        },
+      });
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () =>
-      new Response(trickle, { status: 200, headers: { "content-type": "text/event-stream" } });
+      new Response(trickle(), { status: 200, headers: { "content-type": "text/event-stream" } });
 
     try {
       const client = new Groq({ apiKey: "test" });
@@ -285,7 +290,7 @@ describe("streaming (plan.md Phase 1: async iterator over SSE chunks)", () => {
     }
   });
 
-  it("closes its span when the caller abandons the stream early", async () => {
+  itLive("closes its span when the caller abandons the stream early", async () => {
     // `break` mid-iteration triggers the generator's .return(), which must
     // still run the finally block - otherwise spans leak on every early exit.
     const client = new Groq({ apiKey: env.GROQ_API_KEY });

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeAll } from "vitest";
+import { describeLive } from "./live.js";
 import { configure, Groq, GatewayError } from "../src/index.js";
 import { traceparentFromContext } from "../src/tracing/context.js";
 import { requireConfig } from "../src/config.js";
@@ -94,7 +95,7 @@ describe("stress: trace context isolation under concurrency", () => {
   });
 });
 
-describe("stress: concurrent real gateway traffic", () => {
+describeLive("stress: concurrent real gateway traffic", () => {
   beforeAll(() => {
     configure({ gatewayUrl: GATEWAY_URL, gatewayKey: GATEWAY_KEY, insecure: true });
   });

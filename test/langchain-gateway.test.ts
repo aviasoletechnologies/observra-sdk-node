@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeAll } from "vitest";
+import { describeLive } from "./live.js";
 import { ChatOpenAI } from "@langchain/openai";
 import { configure, instrument } from "../src/index.js";
 import { traceparentFromContext } from "../src/tracing/context.js";
@@ -36,7 +37,7 @@ const TRACEPARENT_RE = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/;
 let sentTraceparent = "NOT_SENT";
 let sentGatewayKey: string | null = null;
 
-describe("LangChain -> gateway (real framework integration path)", () => {
+describeLive("LangChain -> gateway (real framework integration path)", () => {
   beforeAll(async () => {
     configure({ gatewayUrl: GATEWAY_URL, gatewayKey: GATEWAY_KEY, insecure: true });
 

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeAll } from "vitest";
+import { describeLive } from "./live.js";
 import { configure, GatewayError, Gemini, Anthropic } from "../src/index.js";
 import { Together, Fireworks, DeepSeek, XAI, Mistral, Cohere, HuggingFace, Groq, OpenRouter } from "../src/providers/openaiCompatible.js";
 
@@ -46,7 +47,7 @@ async function expectSuccessOrBillingError(promise: Promise<unknown>): Promise<v
   }
 }
 
-describe("providers: live calls through the real local gateway", () => {
+describeLive("providers: live calls through the real local gateway", () => {
   beforeAll(() => {
     configure({
       gatewayUrl: "http://localhost:8787",
