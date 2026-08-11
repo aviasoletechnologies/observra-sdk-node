@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { describeLive } from "./live.js";
 import Groq from "groq-sdk";
 import AnthropicSDK from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
@@ -59,7 +60,7 @@ function findRequest(segment: string): RecordedRequest {
  * exactly as its docs say, with no baseURL override and no observra client
  * class involved. `observra.instrument()` reroutes it to the gateway.
  */
-describe("native provider SDK routing (no wrapper class)", () => {
+describeLive("native provider SDK routing (no wrapper class)", () => {
   beforeAll(async () => {
     configure({ gatewayUrl: GATEWAY_URL, gatewayKey: GATEWAY_KEY, insecure: true });
 
