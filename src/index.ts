@@ -1,4 +1,5 @@
 export { configure } from "./config.js";
+export { shutdown } from "./tracing/tracer.js";
 export { GatewayError } from "./providers/base.js";
 export { GuardrailViolation } from "./guardrails/check.js";
 export { instrument } from "./instrumentation/registry.js";

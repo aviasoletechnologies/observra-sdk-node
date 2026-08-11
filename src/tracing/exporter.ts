@@ -1,5 +1,6 @@
 import { ExportResultCode, hrTimeToMilliseconds, type ExportResult } from "@opentelemetry/core";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
+import { internalSignal } from "../internal/lifecycle.js";
 
 function toWireSpan(span: ReadableSpan) {
   return {
@@ -51,6 +52,7 @@ export class GatewayExporter implements SpanExporter {
         method: "POST",
         headers: { "content-type": "application/json", "X-Gateway-Key": this.gatewayKey },
         body: JSON.stringify(spans.map(toWireSpan)),
+        signal: internalSignal,
       });
     } catch {
       // No real endpoint yet, and even once there is one, an export failure
