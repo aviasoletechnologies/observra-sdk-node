@@ -1,6 +1,6 @@
 {
-  "name": "@aviasole/observra",
-  "version": "0.1.2",
+  "name": "observra-sdk-node",
+  "version": "0.1.3",
   "description": "Observra SDK - route your LLM calls through the Observra gateway for tokens, latency, cost and error observability",
   "license": "MIT",
   "author": "Aviasole Technologies",
