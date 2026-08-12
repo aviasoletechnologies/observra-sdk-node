@@ -27,6 +27,22 @@ export function createTracer(options: {
     spanProcessors: [new BatchSpanProcessor(new GatewayExporter(options.gatewayUrl, options.gatewayKey))],
   });
 
+  // Flush whatever the outgoing provider still had queued before dropping the
+  // only reference to it. Overwriting activeProvider on its own orphaned that
+  // queue: shutdown() and the beforeExit hook can only ever flush the LAST
+  // provider, so every span buffered under an earlier configure() was silently
+  // discarded. Nothing surfaced the loss - the observation still carried a
+  // trace id, because that comes from the span context whether or not the span
+  // is ever exported - so ADR-006 correlation just had holes in it.
+  //
+  // Not awaited: createTracer is synchronous and on the caller's configure()
+  // path, and this is the old provider's flush - the new one is already usable.
+  // provider.shutdown() never rejects here (the exporter swallows its own
+  // errors), and the catch is belt-and-braces so telemetry cleanup can never
+  // fail a caller's configure().
+  const previous = activeProvider;
+  if (previous) void Promise.resolve(previous.shutdown()).catch(() => {});
+
   activeProvider = provider;
   return provider.getTracer("observra");
 }
