@@ -1,5 +1,5 @@
 import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
-import { requireConfig } from "../config.js";
+import { requireConfig, PROMPT_INJECTION_HEADER } from "../config.js";
 import { traceparentFromContext, otelContext } from "../tracing/context.js";
 import { ATTR } from "../tracing/conventions.js";
 import {
@@ -214,6 +214,7 @@ export class GatewayTransport {
   private readonly gatewayKey: string;
   private readonly providerKey: string;
   private readonly provider: string;
+  private readonly promptInjectionDetection: boolean | undefined;
 
   constructor(provider: string, providerKey: string) {
     const config = requireConfig();
@@ -221,6 +222,7 @@ export class GatewayTransport {
     this.baseUrl = `${config.gatewayUrl}/${provider}`;
     this.gatewayKey = config.gatewayKey;
     this.providerKey = providerKey;
+    this.promptInjectionDetection = config.promptInjectionDetection;
   }
 
   async post(path: string, body: unknown): Promise<unknown> {
@@ -336,6 +338,11 @@ export class GatewayTransport {
         "X-Provider-Key": this.providerKey,
         ...(traceparent ? { traceparent } : {}),
         ...(redactedLabels.length > 0 ? { "X-Observra-Guardrail-Applied": redactedLabels.join(",") } : {}),
+        // Spread only when the caller actually set it - an absent header and a
+        // "false" header mean different things to the gateway.
+        ...(this.promptInjectionDetection !== undefined
+          ? { [PROMPT_INJECTION_HEADER]: String(this.promptInjectionDetection) }
+          : {}),
       },
       body: JSON.stringify(body),
     });

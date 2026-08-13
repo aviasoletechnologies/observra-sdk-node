@@ -1,3 +1,5 @@
+import { PROMPT_INJECTION_HEADER } from "../config.js";
+
 /**
  * Maps a provider's real API origin to its gateway route segment. The
  * gateway's own adapters already normalize whatever path the native SDK
@@ -45,6 +47,7 @@ export function rewriteToGateway(
   headers: Headers,
   gatewayUrl: string,
   gatewayKey: string,
+  promptInjectionDetection?: boolean,
 ): RewrittenRequest | null {
   const origin = Object.keys(PROVIDER_ORIGINS).find((o) => url.startsWith(o));
   if (!origin) return null;
@@ -64,5 +67,11 @@ export function rewriteToGateway(
 
   if (providerKey) rewritten.set("X-Provider-Key", providerKey);
   rewritten.set("X-Gateway-Key", gatewayKey);
+  // Set only when configured: the gateway distinguishes an absent header
+  // ("use the application's setting") from an explicit "false" ("skip this
+  // call"), so the two must not collapse into one on the wire.
+  if (promptInjectionDetection !== undefined) {
+    rewritten.set(PROMPT_INJECTION_HEADER, String(promptInjectionDetection));
+  }
   return { url: rewrittenUrl, headers: rewritten, provider: segment };
 }
