@@ -13,6 +13,8 @@ const PROVIDER_ORIGINS: Record<string, string> = {
   "https://api.groq.com": "groq",
   "https://generativelanguage.googleapis.com": "gemini",
   "https://api.together.xyz": "together",
+  // Longest match wins (insertion order) - the gateway's fireworks base already includes /inference.
+  "https://api.fireworks.ai/inference": "fireworks",
   "https://api.fireworks.ai": "fireworks",
   "https://api.deepseek.com": "deepseek",
   "https://api.x.ai": "xai",

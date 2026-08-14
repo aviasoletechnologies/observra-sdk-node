@@ -223,6 +223,18 @@ describe("routing map: every mapped provider rewrites correctly", () => {
     expect(result!.headers.get("authorization")).toBeNull();
   });
 
+  // Full URL, not just the /fireworks/ prefix the it.each checks - the prefix
+  // stayed right while the path was wrong.
+  it("strips fireworks' /inference prefix rather than doubling it", () => {
+    const result = rewriteToGateway(
+      "https://api.fireworks.ai/inference/v1/chat/completions",
+      new Headers({ authorization: "Bearer test_key" }),
+      GATEWAY_URL,
+      GATEWAY_KEY,
+    );
+    expect(result!.url).toBe(`${GATEWAY_URL}/fireworks/v1/chat/completions`);
+  });
+
   it("leaves non-provider URLs completely untouched", () => {
     const result = rewriteToGateway("https://example.com/api", new Headers(), GATEWAY_URL, GATEWAY_KEY);
     expect(result).toBeNull();
