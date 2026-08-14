@@ -102,6 +102,40 @@ describe("promptInjectionDetection: the wrapper-class path", () => {
   });
 });
 
+describe("OBSERVRA_PROMPT_INJECTION_DETECTION", () => {
+  const original = process.env.OBSERVRA_PROMPT_INJECTION_DETECTION;
+  afterEach(() => {
+    if (original === undefined) delete process.env.OBSERVRA_PROMPT_INJECTION_DETECTION;
+    else process.env.OBSERVRA_PROMPT_INJECTION_DETECTION = original;
+  });
+
+  function fromEnv(value: string): boolean | undefined {
+    process.env.OBSERVRA_PROMPT_INJECTION_DETECTION = value;
+    return configure(BASE).promptInjectionDetection;
+  }
+
+  // The truthy set the Python SDK's _env_bool accepts. Both SDKs get pointed
+  // at one shared .env in practice, so a value that means "on" in Python and
+  // "off" here would be a silent, per-language difference in what gets scanned.
+  it.each(["1", "true", "TRUE", " yes ", "on"])("treats %j as enabled, same as Python", (value) => {
+    expect(fromEnv(value)).toBe(true);
+  });
+
+  it.each(["0", "false", "no", "off", "", "bogus"])("treats %j as disabled, same as Python", (value) => {
+    expect(fromEnv(value)).toBe(false);
+  });
+
+  it("stays unset when the variable is absent", () => {
+    delete process.env.OBSERVRA_PROMPT_INJECTION_DETECTION;
+    expect(configure(BASE).promptInjectionDetection).toBeUndefined();
+  });
+
+  it("lets an explicit argument win over the env var", () => {
+    process.env.OBSERVRA_PROMPT_INJECTION_DETECTION = "true";
+    expect(configure({ ...BASE, promptInjectionDetection: false }).promptInjectionDetection).toBe(false);
+  });
+});
+
 describe("both integration paths agree", () => {
   it("uses the identical header name", () => {
     // The two paths build headers independently; a typo in one would be a

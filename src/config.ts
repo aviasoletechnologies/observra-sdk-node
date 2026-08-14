@@ -18,7 +18,8 @@ export interface ConfigureOptions {
   guardrailMode?: GuardrailMode;
   /**
    * Ask the gateway to run prompt-injection detection on calls from this
-   * process. Mirrors the Python SDK's `prompt_injection_detection`.
+   * process. Mirrors the Python SDK's `prompt_injection_detection`, and reads
+   * OBSERVRA_PROMPT_INJECTION_DETECTION when not passed explicitly.
    *
    * Leave it unset and the header is omitted entirely, which is not the same
    * as passing `false`: the gateway treats an absent header as "use whatever
@@ -26,6 +27,13 @@ export interface ConfigureOptions {
    * scan for this call". Defaulting to `false` here would silently switch off
    * server-side detection for every application whose SDK was upgraded, so
    * `undefined` has to stay distinct from `false` all the way to the wire.
+   *
+   * This is the one deliberate difference from the Python SDK, whose config
+   * field defaults to False and whose transport therefore sends
+   * `...-detection: false` on every request. Against the gateway's current
+   * check (`if (!setting.enabled || sdkFlag === false) return undefined`) that
+   * disables detection for all its traffic regardless of the application's
+   * dashboard setting.
    */
   promptInjectionDetection?: boolean;
 }
@@ -48,6 +56,23 @@ export interface ObservraConfig {
  * silently half-working feature.
  */
 export const PROMPT_INJECTION_HEADER = "X-Observra-Prompt-Injection-Detection";
+
+const ENV_PROMPT_INJECTION_DETECTION = "OBSERVRA_PROMPT_INJECTION_DETECTION";
+
+/**
+ * Reads a boolean env var, accepting the same truthy set as the Python SDK's
+ * `_env_bool` ("1"/"true"/"yes"/"on", case-insensitive, trimmed) - the two
+ * SDKs are routinely configured from one shared .env, and a value that means
+ * "on" for one and "off" for the other is a trap.
+ *
+ * Returns undefined (not false) when unset, so an absent env var stays the
+ * "no opinion" state rather than collapsing into an explicit opt-out.
+ */
+function envBool(name: string): boolean | undefined {
+  const raw = process.env[name];
+  if (raw === undefined) return undefined;
+  return ["1", "true", "yes", "on"].includes(raw.trim().toLowerCase());
+}
 
 let activeConfig: ObservraConfig | null = null;
 
@@ -79,8 +104,10 @@ export function configure(options: ConfigureOptions = {}): ObservraConfig {
     serviceName: options.serviceName,
     tracer: createTracer({ gatewayUrl, gatewayKey, serviceName: options.serviceName }),
     guardrailMode: options.guardrailMode ?? "warn",
-    // No ?? default on purpose - see ConfigureOptions.promptInjectionDetection.
-    promptInjectionDetection: options.promptInjectionDetection,
+    // Explicit argument wins, then the env var, then "no opinion" - same
+    // precedence as the Python SDK. No ?? false at the end on purpose, see
+    // ConfigureOptions.promptInjectionDetection.
+    promptInjectionDetection: options.promptInjectionDetection ?? envBool(ENV_PROMPT_INJECTION_DETECTION),
   };
   return activeConfig;
 }
