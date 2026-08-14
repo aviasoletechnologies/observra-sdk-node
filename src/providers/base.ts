@@ -1,5 +1,5 @@
 import { SpanKind, SpanStatusCode, trace, type Span } from "@opentelemetry/api";
-import { requireConfig } from "../config.js";
+import { requireConfig, PROMPT_INJECTION_HEADER } from "../config.js";
 import { traceparentFromContext, otelContext } from "../tracing/context.js";
 import { ATTR } from "../tracing/conventions.js";
 import {
@@ -33,6 +33,18 @@ function extractErrorMessage(json: unknown, status: number): string {
     return JSON.stringify(json);
   }
   return `gateway request failed with status ${status}`;
+}
+
+/** Same error type whether the rule was enforced locally or by the gateway -
+ * otherwise the class a caller catches depends on cache warmth. */
+function throwIfGuardrailBlocked(json: unknown): void {
+  if (!json || typeof json !== "object") return;
+  const { error } = json as { error?: { code?: string; rules?: string[]; rule?: string } };
+  if (error?.code !== "guardrail_blocked" && error?.code !== "ai_guardrail_blocked") return;
+  // guardrail_blocked carries `rules` (regex, can match several at once);
+  // ai_guardrail_blocked carries a single `rule`.
+  const labels = error.rules ?? (error.rule ? [error.rule] : []);
+  throw new GuardrailViolation(labels.map((label) => ({ label })));
 }
 
 export class GatewayError extends Error {
@@ -144,10 +156,13 @@ interface OrgRulesResult {
 function applyOrgRules(span: Span, value: unknown): OrgRulesResult {
   const { gatewayUrl, gatewayKey } = requireConfig();
   const rules = getRules(gatewayUrl, gatewayKey);
-  if (rules.length === 0) return { value, redactedLabels: [] };
 
-  const blockRules = rules.filter((r) => r.action === "block");
-  const redactRules = rules.filter((r) => r.action === "redact");
+  // failOnMatch:false is "must APPEAR" - an absence can't be judged from one
+  // string leaf, and treating it as a match inverts the verdict. Gateway owns these.
+  const usable = rules.filter((r) => r.failOnMatch !== false);
+
+  const blockRules = usable.filter((r) => r.action === "block");
+  const redactRules = usable.filter((r) => r.action === "redact");
 
   if (blockRules.length > 0) {
     applyGuardrailAttributes(span, "block", safeCheckStructured(value, "block", blockRules));
@@ -313,6 +328,7 @@ export class GatewayTransport {
     const res = await this.doFetchRaw(path, body, traceparent, redactedLabels);
     const json = await res.json().catch(() => null);
     if (!res.ok) {
+      throwIfGuardrailBlocked(json);
       throw new GatewayError(extractErrorMessage(json, res.status), res.status, json);
     }
     return json;
@@ -328,6 +344,11 @@ export class GatewayTransport {
     traceparent: string | undefined,
     redactedLabels: string[] = [],
   ): Promise<Response> {
+    // Read per request, not captured in the constructor: a long-lived client
+    // built before a later configure() would otherwise keep sending the old
+    // setting forever. guardrailMode in post() above is read the same way, and
+    // the Python SDK's transport also reads it off the live config per request.
+    const { promptInjectionDetection } = requireConfig();
     return fetch(this.baseUrl + path, {
       method: "POST",
       headers: {
@@ -336,6 +357,11 @@ export class GatewayTransport {
         "X-Provider-Key": this.providerKey,
         ...(traceparent ? { traceparent } : {}),
         ...(redactedLabels.length > 0 ? { "X-Observra-Guardrail-Applied": redactedLabels.join(",") } : {}),
+        // Spread only when the caller actually set it - an absent header and a
+        // "false" header mean different things to the gateway.
+        ...(promptInjectionDetection !== undefined
+          ? { [PROMPT_INJECTION_HEADER]: String(promptInjectionDetection) }
+          : {}),
       },
       body: JSON.stringify(body),
     });
@@ -357,6 +383,7 @@ async function* parseSSE(res: Response): AsyncGenerator<unknown, void, undefined
     } catch {
       parsed = text || null;
     }
+    throwIfGuardrailBlocked(parsed);
     throw new GatewayError(extractErrorMessage(parsed, res.status), res.status, parsed);
   }
   if (!res.body) return;
