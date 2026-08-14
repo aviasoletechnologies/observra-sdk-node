@@ -100,6 +100,32 @@ describe("promptInjectionDetection: the wrapper-class path", () => {
   it("sends 'false' when disabled", async () => {
     expect((await capture(false))[PROMPT_INJECTION_HEADER]).toBe("false");
   });
+
+  it("picks up a later configure() on a client that already exists", async () => {
+    // The value is read per request rather than captured in GatewayTransport's
+    // constructor. Captured, a long-lived client built during startup would
+    // keep sending the setting it was born with, so toggling detection would
+    // appear to work (config updates) while the wire never changed.
+    configure({ ...BASE, promptInjectionDetection: false });
+    const { Groq } = await import("../src/index.js");
+    const client = new Groq({ apiKey: "gsk_provider" });
+
+    let sent: Record<string, string> = {};
+    globalThis.fetch = (async (_input: unknown, init: { headers?: Record<string, string> }) => {
+      sent = { ...(init?.headers ?? {}) };
+      return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+
+    configure({ ...BASE, promptInjectionDetection: true });
+    await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(sent[PROMPT_INJECTION_HEADER]).toBe("true");
+  });
 });
 
 describe("OBSERVRA_PROMPT_INJECTION_DETECTION", () => {

@@ -214,7 +214,6 @@ export class GatewayTransport {
   private readonly gatewayKey: string;
   private readonly providerKey: string;
   private readonly provider: string;
-  private readonly promptInjectionDetection: boolean | undefined;
 
   constructor(provider: string, providerKey: string) {
     const config = requireConfig();
@@ -222,7 +221,6 @@ export class GatewayTransport {
     this.baseUrl = `${config.gatewayUrl}/${provider}`;
     this.gatewayKey = config.gatewayKey;
     this.providerKey = providerKey;
-    this.promptInjectionDetection = config.promptInjectionDetection;
   }
 
   async post(path: string, body: unknown): Promise<unknown> {
@@ -330,6 +328,11 @@ export class GatewayTransport {
     traceparent: string | undefined,
     redactedLabels: string[] = [],
   ): Promise<Response> {
+    // Read per request, not captured in the constructor: a long-lived client
+    // built before a later configure() would otherwise keep sending the old
+    // setting forever. guardrailMode in post() above is read the same way, and
+    // the Python SDK's transport also reads it off the live config per request.
+    const { promptInjectionDetection } = requireConfig();
     return fetch(this.baseUrl + path, {
       method: "POST",
       headers: {
@@ -340,8 +343,8 @@ export class GatewayTransport {
         ...(redactedLabels.length > 0 ? { "X-Observra-Guardrail-Applied": redactedLabels.join(",") } : {}),
         // Spread only when the caller actually set it - an absent header and a
         // "false" header mean different things to the gateway.
-        ...(this.promptInjectionDetection !== undefined
-          ? { [PROMPT_INJECTION_HEADER]: String(this.promptInjectionDetection) }
+        ...(promptInjectionDetection !== undefined
+          ? { [PROMPT_INJECTION_HEADER]: String(promptInjectionDetection) }
           : {}),
       },
       body: JSON.stringify(body),
