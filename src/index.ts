@@ -8,6 +8,7 @@ export { Anthropic } from "./providers/anthropic.js";
 export {
   OpenAI,
   Groq,
+  Cerebras,
   Azure,
   Ollama,
   OpenRouter,

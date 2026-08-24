@@ -202,6 +202,7 @@ describe("routing map: every mapped provider rewrites correctly", () => {
     ["https://api.openai.com/v1/chat/completions", "openai", "openai@6 default"],
     ["https://api.anthropic.com/v1/messages", "anthropic", "@anthropic-ai/sdk default"],
     ["https://api.groq.com/openai/v1/chat/completions", "groq", "groq-sdk default"],
+    ["https://api.cerebras.ai/v1/chat/completions", "cerebras", "@cerebras/cerebras_cloud_sdk default"],
     ["https://generativelanguage.googleapis.com/v1beta/models/x:generateContent", "gemini", "@google/genai default"],
     ["https://api.mistral.ai/v1/chat/completions", "mistral", "@mistralai/mistralai default"],
     ["https://api.together.xyz/v1/chat/completions", "together", "together-ai"],

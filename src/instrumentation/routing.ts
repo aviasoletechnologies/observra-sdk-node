@@ -11,6 +11,7 @@ const PROVIDER_ORIGINS: Record<string, string> = {
   "https://api.openai.com": "openai",
   "https://api.anthropic.com": "anthropic",
   "https://api.groq.com": "groq",
+  "https://api.cerebras.ai": "cerebras",
   "https://generativelanguage.googleapis.com": "gemini",
   "https://api.together.xyz": "together",
   // Longest match wins (insertion order) - the gateway's fireworks base already includes /inference.

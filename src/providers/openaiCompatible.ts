@@ -74,6 +74,7 @@ function providerClient(provider: string) {
 
 export const OpenAI = providerClient("openai");
 export const Groq = providerClient("groq");
+export const Cerebras = providerClient("cerebras");
 export const Azure = providerClient("azure");
 export const Ollama = providerClient("ollama");
 export const OpenRouter = providerClient("openrouter");

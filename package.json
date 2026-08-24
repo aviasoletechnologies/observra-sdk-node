@@ -1,6 +1,6 @@
 {
   "name": "observra-sdk-node",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Observra SDK - route your LLM calls through the Observra gateway for tokens, latency, cost and error observability",
   "license": "MIT",
   "author": "Aviasole Technologies",
@@ -31,7 +31,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18"
   },
