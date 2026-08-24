@@ -150,6 +150,28 @@ swallowed and logged, never surfaced as a failed LLM call. Set
 | `guardrailMode` | `"warn"` | `"warn"` \| `"redact"` \| `"block"` |
 | `insecure` | `false` | Allows plaintext `http://` — local dev only |
 
+## Shutting down
+
+Spans are batched, so some are usually still queued when your code finishes.
+On a normal exit the SDK flushes them for you and there is nothing to do.
+
+If your app calls `process.exit()` — scripts, CLIs, job runners — await
+`shutdown()` first:
+
+```ts
+await observra.shutdown();
+process.exit(0);
+```
+
+`process.exit()` skips Node's `beforeExit` event and destroys the event loop
+on the spot. Without `shutdown()` you lose the queued spans, and if a
+telemetry request is still in flight the process aborts on a libuv assertion
+(`!(handle->flags & UV_HANDLE_CLOSING)`) instead of exiting. No library hook
+can prevent that from the inside — `exit` handlers cannot await — so this one
+call is the fix.
+
+`shutdown()` never throws, and is safe to call twice or before `configure()`.
+
 ## Examples
 
 Runnable, in [`examples/`](./examples):

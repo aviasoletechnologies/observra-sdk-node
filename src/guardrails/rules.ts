@@ -1,4 +1,5 @@
 import { log } from "../internal/log.js";
+import { internalSignal } from "../internal/lifecycle.js";
 import type { GuardrailPattern } from "./patterns.js";
 
 /**
@@ -84,8 +85,20 @@ function compile(wire: WireRule[]): CompiledRule[] {
 }
 
 async function fetchRules(gatewayUrl: string, gatewayKey: string): Promise<void> {
+  // Checked up front, not just via the listener below: adding a listener to an
+  // already-aborted signal never fires it, so a refresh kicked off after
+  // shutdown() would otherwise run completely unaborted - the very in-flight
+  // request that crashes the process at exit. The exporter avoids this by
+  // passing internalSignal straight to fetch(); this path cannot, because it
+  // also needs its own timeout signal.
+  if (internalSignal.aborted) return;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  // Also give up if the process is exiting - a pooled connection still open
+  // when the event loop is destroyed crashes the process (see lifecycle.ts).
+  const abortOnExit = () => controller.abort();
+  internalSignal.addEventListener("abort", abortOnExit);
   try {
     const res = await fetch(`${gatewayUrl}${RULES_PATH}`, {
       headers: { "X-Gateway-Key": gatewayKey },
@@ -111,6 +124,7 @@ async function fetchRules(gatewayUrl: string, gatewayKey: string): Promise<void>
     log("guardrail rules fetch failed, keeping previous rules: %s", err);
   } finally {
     clearTimeout(timer);
+    internalSignal.removeEventListener("abort", abortOnExit);
   }
 }
 

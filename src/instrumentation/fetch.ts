@@ -169,7 +169,13 @@ function planRequest(input: RequestInfo | URL, init?: RequestInit): RoutePlan | 
   // emitting another span, forever. Bail before anything else touches it.
   if (url.startsWith(`${config.gatewayUrl}${OBSERVRA_INTERNAL_PREFIX}`)) return null;
 
-  const rewritten = rewriteToGateway(url, headers, config.gatewayUrl, config.gatewayKey);
+  const rewritten = rewriteToGateway(
+    url,
+    headers,
+    config.gatewayUrl,
+    config.gatewayKey,
+    config.promptInjectionDetection,
+  );
   const finalUrl = rewritten?.url ?? url;
   const gatewayBound = finalUrl.startsWith(config.gatewayUrl);
 
@@ -199,7 +205,13 @@ function planRequest(input: RequestInfo | URL, init?: RequestInit): RoutePlan | 
  * was opened) so traceparentFromContext() resolves to it. */
 function finalizeCall(route: RoutePlan, input: RequestInfo | URL, init?: RequestInit): PatchedCall | null {
   const rewritten = route.rerouted
-    ? rewriteToGateway(route.url, route.headers, route.config.gatewayUrl, route.config.gatewayKey)
+    ? rewriteToGateway(
+        route.url,
+        route.headers,
+        route.config.gatewayUrl,
+        route.config.gatewayKey,
+        route.config.promptInjectionDetection,
+      )
     : null;
   const finalUrl = rewritten?.url ?? route.url;
   const finalHeaders = rewritten?.headers ?? route.headers;

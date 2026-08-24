@@ -39,7 +39,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "vitest run"
+    "test": "npm run build && vitest run"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
