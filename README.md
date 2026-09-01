@@ -55,9 +55,21 @@ console.log(res.choices[0].message.content);
 ```
 
 Works the same for `groq-sdk`, `@anthropic-ai/sdk`, `@google/genai`,
-`@mistralai/mistralai`, and any agent framework built on them (LangChain,
+`@mistralai/mistralai`, the OpenAI-compatible TokenRouter API, and any agent framework built on them (LangChain,
 Google ADK, …) — they all issue their calls over `fetch`, which is what
 `instrument()` hooks.
+
+For TokenRouter, keep its normal OpenAI-compatible endpoint and key; `instrument()`
+rewrites it to the Observra gateway automatically:
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.TOKENROUTER_API_KEY,
+  baseURL: "https://api.tokenrouter.com/v1",
+});
+```
 
 ### 2. Use Observra's clients
 
@@ -76,8 +88,8 @@ const res = await client.chat.completions.create({
 ```
 
 Available: `OpenAI`, `Anthropic`, `Gemini`, `Groq`, `Azure`, `Ollama`,
-`OpenRouter`, `Together`, `Fireworks`, `DeepSeek`, `XAI`, `Mistral`, `NIM`,
-`LMStudio`, `Cohere`, `HuggingFace`, `Vertex`, `Bedrock`.
+`OpenRouter`, `TokenRouter`, `Together`, `Fireworks`, `DeepSeek`, `XAI`,
+`Mistral`, `NIM`, `LMStudio`, `Cohere`, `HuggingFace`, `Vertex`, `Bedrock`.
 
 `Gemini` and `Anthropic` also keep their native shapes
 (`.models.generateContent(...)`, `.messages.create(...)`).
