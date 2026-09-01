@@ -212,6 +212,7 @@ describe("routing map: every mapped provider rewrites correctly", () => {
     ["https://api.cohere.com/v2/chat", "cohere", "cohere-ai"],
     ["https://router.huggingface.co/v1/chat/completions", "huggingface", "HF inference router"],
     ["https://openrouter.ai/api/v1/chat/completions", "openrouter", "openrouter"],
+    ["https://api.tokenrouter.com/v1/chat/completions", "tokenrouter", "TokenRouter"],
     ["https://ollama.com/api/chat", "ollama", "ollama cloud"],
   ];
 

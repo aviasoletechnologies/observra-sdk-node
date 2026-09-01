@@ -21,6 +21,7 @@ export {
   LMStudio,
   Cohere,
   HuggingFace,
+  TokenRouter,
   Vertex,
   Bedrock,
 } from "./providers/openaiCompatible.js";

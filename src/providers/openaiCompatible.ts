@@ -87,6 +87,7 @@ export const NIM = providerClient("nim");
 export const LMStudio = providerClient("lmstudio");
 export const Cohere = providerClient("cohere");
 export const HuggingFace = providerClient("huggingface");
+export const TokenRouter = providerClient("tokenrouter");
 // Vertex (needs X-Vertex-Endpoint) and Bedrock (needs X-Aws-Access-Key-Id/
 // X-Aws-Region/session-token, per docs/13-provider-expansion-plan.md) require
 // extra per-request headers beyond just the provider key - these exports are

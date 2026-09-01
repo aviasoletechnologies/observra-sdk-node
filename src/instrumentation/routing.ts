@@ -23,6 +23,7 @@ const PROVIDER_ORIGINS: Record<string, string> = {
   "https://api.cohere.com": "cohere",
   "https://router.huggingface.co": "huggingface",
   "https://openrouter.ai": "openrouter",
+  "https://api.tokenrouter.com": "tokenrouter",
   "https://ollama.com": "ollama",
 };
 
